@@ -3,14 +3,18 @@ import matplotlib.pyplot as plt
 import pywt
 import numpy as np
 
+import errors_process as ep
+
 
 def main():
 
+    err = []
     img = cv.imread('./depth_image/depth0.jpg')
 
     img_g = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
     cA, (cP, cV, cD) = pywt.dwt2(img_g, 'haar')
+    # parallel vertical diagnoal
 
     size = cA.shape
     newP = np.zeros(size)
@@ -28,6 +32,7 @@ def main():
     plt.title('out')
 
     errors = img_idwt - img_g
+    err.append(errors)
     plt.subplot(223)
     plt.imshow(errors, cmap='gray')
     plt.title('errors')
@@ -55,6 +60,7 @@ def main():
     img_idwt2_1 = pywt.idwt2((l2[0], (new2P, new2P, new2P)), 'haar')
     img_idwt2 = pywt.idwt2((img_idwt2_1, (newP, newP, newP)), 'haar')
     errors2 = img_idwt2 - img_g
+    err.append(errors2)
     plt.subplot(231+4)
     plt.imshow(img_idwt2, 'gray')
     plt.title(f'5')
@@ -80,12 +86,33 @@ def main():
     img_idwt3_2 = pywt.idwt2((img_idwt3_1, (new2P, new2P, new2P)), 'haar')
     img_idwt3 = pywt.idwt2((img_idwt3_2, (newP, newP, newP)), 'haar')
     errors3 = img_idwt3 - img_g
+    err.append(errors3)
     plt.subplot(231+4)
     plt.imshow(img_idwt3, 'gray')
     plt.title(f'5')
     plt.subplot(231+5)
     plt.imshow(errors3, 'gray')
     plt.title(f'6')
+
+    for i in range(len(err)):
+
+        np.savetxt(
+            f'./depth_image/depth0/level3dwt_test_errors{i+1}.txt', err[i])
+
+    err_lst = []
+    diff_lst = []
+    for e in err:
+        errlst, diff, maxi = ep.find_rate(e)
+        err_lst.append(errlst)
+        diff_lst.append(diff)
+        print(maxi)
+
+    print(np.max(img_g))
+
+    np.savetxt(
+        f'./depth_image/depth0/errors_concentration.txt', err_lst, fmt='%.2f')
+    np.savetxt(
+        f'./depth_image/depth0/errors_diff.txt', diff_lst, fmt='%.2f')
 
 
 if __name__ == '__main__':
